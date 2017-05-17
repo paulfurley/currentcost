@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import datetime
 import serial
 from xml.etree.cElementTree import fromstring
@@ -10,6 +11,7 @@ import os
 import requests
 
 EXAMPLE_LINE = '<msg><src>CC128-v1.48</src><dsb>00789</dsb><time>22:20:42</time><tmpr>22.7</tmpr><sensor>0</sensor><id>02872</id><type>1</type><ch1><watts>00500</watts></ch1></msg>\r\n'  # noqa
+MAX_BUFFER_LENGTH = 14400  # 24 hours @ 1 reading per 6 seconds
 
 
 def main(argv):
@@ -22,13 +24,15 @@ def main(argv):
 
     signal.signal(signal.SIGTERM, signal_term_handler)
 
+    readings_buffer = collections.deque(maxlen=MAX_BUFFER_LENGTH)
     with serial_class(*serial_args) as s:
         try:
             while True:
                 watts = parse_watts(s.readline())
 
                 if watts is not None:
-                    upload_reading((utc_now(), watts))
+                    readings_buffer.append((utc_now(), watts))  # to *right*
+                    upload_readings(readings_buffer)
 
         except KeyboardInterrupt:
             pass
@@ -100,21 +104,41 @@ def signal_term_handler(signal, frame):
     sys.exit(0)
 
 
+def upload_readings(queue, for_seconds=5):
+    """
+    left --> [oldest_reading, ..., newest_reading]  <-- right
+
+    always *add* to right and *take* from left
+    """
+
+    stop_at = datetime.datetime.now() + datetime.timedelta(seconds=for_seconds)
+
+    while datetime.datetime.now() < stop_at:
+        if len(queue) > 1:
+            print('{} reading(s) in queue'.format(len(queue)))
+
+        try:
+            oldest_reading = queue.popleft()
+        except IndexError:  # no more readings
+            return
+
+        try:
+            upload_reading(oldest_reading)
+        except Exception as e:
+            print(e)
+            queue.appendleft(oldest_reading)
+            break
+
+
 def upload_reading(reading):
     dt, watts = reading
 
     url = make_emoncms_url(dt, watts)
     # print(url)
 
-    try:
-        response = requests.post(url)
-        response.raise_for_status()
-        assert response.text == 'ok', response.text
-    except Exception as e:
-        print(e)
-        return False
-    else:
-        return True
+    response = requests.post(url, timeout=4)
+    response.raise_for_status()
+    assert response.text == 'ok', response.text
 
 
 def make_emoncms_url(dt, watts):
