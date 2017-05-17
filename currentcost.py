@@ -18,11 +18,13 @@ import requests
 EXAMPLE_LINE = '<msg><src>CC128-v1.48</src><dsb>00789</dsb><time>22:20:42</time><tmpr>22.7</tmpr><sensor>0</sensor><id>02872</id><type>1</type><ch1><watts>00500</watts></ch1></msg>\r\n'  # noqa
 MAX_BUFFER_LENGTH = 14400  # 24 hours @ 1 reading per 6 seconds
 
+SESSION = requests.Session()
+
 
 def main(argv):
     load_settings()
     logging.basicConfig(
-        level=logging.DEBUG if SETTINGS['DEBUG'] else logging.warn
+        level=logging.DEBUG if SETTINGS['DEBUG'] else logging.WARN
     )
 
     if SETTINGS['FAKE_MODE']:
@@ -155,7 +157,7 @@ def upload_reading(reading):
     url = make_emoncms_url(dt, watts)
     logging.debug(url)
 
-    response = requests.post(url, timeout=4)
+    response = SESSION.post(url, timeout=4)
     response.raise_for_status()
     assert response.text == 'ok', response.text
 
