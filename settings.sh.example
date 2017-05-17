@@ -1,4 +1,0 @@
-export EMONCMS_API_KEY=[YOUR API KEY - visit /emoncms/input/api]
-export EMONCMS_INPUT_NAME=power_test
-export EMONCMS_NODE=1
-export EMONCMS_URL="https://example.com/emoncms"

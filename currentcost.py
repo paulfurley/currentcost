@@ -2,12 +2,16 @@
 
 import collections
 import datetime
+import json
+import io
 import serial
 from xml.etree.cElementTree import fromstring
 import signal
 import sys
 import time
-import os
+
+from os.path import dirname, join as pjoin
+
 import requests
 
 EXAMPLE_LINE = '<msg><src>CC128-v1.48</src><dsb>00789</dsb><time>22:20:42</time><tmpr>22.7</tmpr><sensor>0</sensor><id>02872</id><type>1</type><ch1><watts>00500</watts></ch1></msg>\r\n'  # noqa
@@ -15,7 +19,12 @@ MAX_BUFFER_LENGTH = 14400  # 24 hours @ 1 reading per 6 seconds
 
 
 def main(argv):
-    if len(argv) > 1 and argv[1] == '--fake':
+    load_settings()
+    logging.basicConfig(
+        level=logging.DEBUG if SETTINGS['DEBUG'] else logging.warn
+    )
+
+    if SETTINGS['FAKE_MODE']:
         serial_class = FakeSerial
         serial_args = []
     else:
@@ -36,6 +45,13 @@ def main(argv):
 
         except KeyboardInterrupt:
             pass
+
+
+def load_settings():
+    global SETTINGS
+
+    with io.open(pjoin(dirname(__file__), 'settings.json'), 'rt') as f:
+        SETTINGS = json.load(f)
 
 
 class UTC(datetime.tzinfo):
@@ -144,11 +160,11 @@ def upload_reading(reading):
 def make_emoncms_url(dt, watts):
     return '{emoncms_url}/input/post.json?time={timestamp}&node={node}&json={{{input_name}:{watts}}}&apikey={api_key}'.format(  # noqa
         timestamp=utc_epoch_time(dt),
-        emoncms_url=os.environ['EMONCMS_URL'],
-        input_name=os.environ['EMONCMS_INPUT_NAME'],
+        emoncms_url=SETTINGS['EMONCMS_URL'],
+        input_name=SETTINGS['EMONCMS_INPUT_NAME'],
         watts=watts,
-        node=os.environ['EMONCMS_NODE'],
-        api_key=os.environ['EMONCMS_API_KEY']
+        node=SETTINGS['EMONCMS_NODE'],
+        api_key=SETTINGS['EMONCMS_API_KEY']
     )
 
 

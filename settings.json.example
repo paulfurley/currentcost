@@ -1,0 +1,8 @@
+{
+  "DEBUG": false,
+  "FAKE_MODE": false,
+  "EMONCMS_INPUT_NAME": "power",
+  "EMONCMS_API_KEY": "[YOUR API KEY - visit /emoncms/input/api]",
+  "EMONCMS_NODE": "1",
+  "EMONCMS_URL": "https://example.com/emoncms"
+}
