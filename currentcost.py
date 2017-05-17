@@ -24,6 +24,19 @@ def utc_now_string():
     return datetime.datetime.now(UTC()).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
+def parse_watts(serial_line):
+    xml = fromstring(serial_line)
+
+    if xml.tag != 'msg':
+        return
+
+    if xml.find('hist'):
+        return
+
+    watts = int(xml.find('ch1').find('watts').text)
+    return watts
+
+
 serial = serial.Serial('/dev/ttyUSB0', 57600)
 
 with open('/srv/currentcost/currentcost.csv', 'a') as csvfile:
@@ -41,19 +54,14 @@ with open('/srv/currentcost/currentcost.csv', 'a') as csvfile:
             if not msg:
                 raise ValueError('Time out')
 
-            xml = fromstring(msg)
-
-            if xml.tag != 'msg':
+            watts = parse_watts(msg)
+            if watts is None:
                 continue
-
-            if xml.find('hist'):
-                continue
-
-            watts = int(xml.find('ch1').find('watts').text)
 
             timestamp = utc_now_string()
 
             row = [timestamp, watts]
             writer.writerow(row)
+
     except KeyboardInterrupt:
         csvfile.flush()
