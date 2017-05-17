@@ -134,7 +134,7 @@ def upload_readings(queue, for_seconds=5):
 
     while datetime.datetime.now() < stop_at:
         if len(queue) > 1:
-            logging.info('{} reading(s) in queue'.format(len(queue)))
+            logging.warn('{} reading(s) in queue'.format(len(queue)))
         else:
             logging.debug('{} reading(s) in queue'.format(len(queue)))
 
