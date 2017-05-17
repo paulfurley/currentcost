@@ -24,7 +24,7 @@ SESSION = requests.Session()
 def main(argv):
     load_settings()
     logging.basicConfig(
-        level=logging.DEBUG if SETTINGS['DEBUG'] else logging.INFO
+        level=logging.DEBUG if SETTINGS['DEBUG'] else logging.WARN
     )
 
     if SETTINGS['FAKE_MODE']:
