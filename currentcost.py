@@ -9,6 +9,7 @@ from xml.etree.cElementTree import fromstring
 import signal
 import sys
 import time
+import logging
 
 from os.path import dirname, join as pjoin
 
@@ -131,7 +132,9 @@ def upload_readings(queue, for_seconds=5):
 
     while datetime.datetime.now() < stop_at:
         if len(queue) > 1:
-            print('{} reading(s) in queue'.format(len(queue)))
+            logging.info('{} reading(s) in queue'.format(len(queue)))
+        else:
+            logging.debug('{} reading(s) in queue'.format(len(queue)))
 
         try:
             oldest_reading = queue.popleft()
@@ -141,7 +144,7 @@ def upload_readings(queue, for_seconds=5):
         try:
             upload_reading(oldest_reading)
         except Exception as e:
-            print(e)
+            logging.exception(e)
             queue.appendleft(oldest_reading)
             break
 
@@ -150,7 +153,7 @@ def upload_reading(reading):
     dt, watts = reading
 
     url = make_emoncms_url(dt, watts)
-    # print(url)
+    logging.debug(url)
 
     response = requests.post(url, timeout=4)
     response.raise_for_status()
